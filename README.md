@@ -1,4 +1,3 @@
-# test version v0 - under construction!!!
 # Robust Perception Through Analysis By Synthesis
 The ABS model is a robust (w.r.t. Adversarial Examples) classifier on MNIST. For more details checkout our paper "Towards the first adversarially robust neural network model on MNIST
 https://arxiv.org/abs/1805.09190 [1]. 

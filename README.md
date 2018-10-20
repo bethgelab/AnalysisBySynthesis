@@ -32,11 +32,11 @@ Lastly we also compute distal (also called trash) adversarial examples which are
 The model can be loaded and supports the standard pytorch API
  
 ```
-from abs_models import models as mz
+from abs_models import models as mz        # model zoo
 from abs_models import utils as u
 
 model = mz.get_VAE(n_iter=50)              # ABS do n_iter=1 for speedup (but ess accurate)
-batch, label = u.get_batch()                   # returns torch.tensor, shape (batch_size, n_channels, nx, ny)
+batch, label = u.get_batch()               # returns torch.tensor, shape (batch_size, n_channels, nx, ny)
 logits = model(u.n2t(batch))
 ```
 For a complete example using foolbox see "_scripts/attacks.ipynb_" or "_scripts/attacks.py_".

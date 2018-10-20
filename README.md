@@ -37,7 +37,7 @@ model = mz.get_VAE(n_iter=50)              # ABS do n_iter=1 for speedup (but es
 batch, label = u.get_batch()                   # returns torch.tensor, shape (batch_size, n_channels, nx, ny)
 logits = model(u.n2t(batch))```
 For a complete example using foolbox see "_scripts/attacks.ipynb_" or "_scripts/attacks.py_".
-
+```
 
 With the power of foolbox one can also run a code agnostic version of the model
 

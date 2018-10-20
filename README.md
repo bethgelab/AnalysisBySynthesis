@@ -19,7 +19,7 @@ To generate adversarial examples and run the code agnostic of the deeplearning f
 Foolbox support decision-, score- and gradient-based attacks. For gradient-based attacks, the gradients can either be calculated directly or estimated with the model scores and finite difference based methods. 
 Additionally some model specific attacks (LatentDescent) are provided. 
 
-Lastly we also compute distal (also called trash) adversarial examples which are unrecognizable images which are classified with high confidence.  
+Lastly we also compute distal (also called trash) adversarial examples which are unrecognizabale images which are classified with high confidence.  
 
 <p align="center">
       <img src="exp/imgs/distal_adversarials.png" alt="dist advs"/><br/>

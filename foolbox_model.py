@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import foolbox
 import numpy as np
-from abs_model.model import create_ABS_model
+from abs_models.models import get_ABS
 import os
 
 def create():
-    path = os.path.join(os.path.dirname(__file__), 'weights')
-    model = create_ABS_model(path)
+    model = get_ABS()
     model.eval()
     fmodel = foolbox.models.PyTorchModel(
         model, (0, 1), num_classes=10)

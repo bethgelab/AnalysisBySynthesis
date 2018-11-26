@@ -44,7 +44,7 @@ class GridMan(object):
                                                self.nc, self.nx, self.ny))
             for c, AE in enumerate(self.AEs[:self.n_classes]):
                 AE.eval()
-                images = F.sigmoid(AE.Decoder.forward(self.l_v[n_samples])).cpu().data.numpy()
+                images = torch.sigmoid(AE.Decoder.forward(self.l_v[n_samples])).cpu().data.numpy()
                 if weighted:
                     images = images[:, 0, None]
                 self.images[n_samples][c, ...] = images

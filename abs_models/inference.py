@@ -22,8 +22,8 @@ def inference(AEs, x_inp, n_samples, n_iter, beta, GM, fraction_to_dismiss=0.1, 
         print('setting random seed')
         # fix random numbers for attacks
         torch.cuda.manual_seed_all(999)
-        torch.manual_seed(7)
-        np.random.seed(22)
+        torch.manual_seed(1234)
+        np.random.seed(1234)
         # generate a bunch of samples for each VAE
         GM.get_images(n_samples, fraction_to_dismiss)
 
@@ -34,12 +34,12 @@ def inference(AEs, x_inp, n_samples, n_iter, beta, GM, fraction_to_dismiss=0.1, 
     with torch.no_grad():
         bs, n_ch, nx, ny = x_inp.shape
         n_samples, n_latent = GM.l_v[n_samples].shape[-4:-2]
-        all_ELBOs = loss_functions.ELBOs(
-                        x_test_samples.view(1, n_classes, n_samples, n_ch, nx, ny),
-                        GM.l_v[n_samples].view(1, 1, n_samples, n_latent, 1, 1),
-                        x_inp.view(bs, 1, 1, n_ch, nx, ny),
-                        beta=beta, dist_fct=dist_fct,
-                        auto_batch_size=8)
+
+        all_ELBOs = \
+            [loss_functions.ELBOs2(x_inp, recs.detach(), GM.l_v[n_samples], beta)
+             for recs in x_test_samples]
+        all_ELBOs = torch.stack(all_ELBOs, dim=1)
+
     x_inp = x_inp.view(bs, n_ch, nx, ny)
 
     # tmp save memory
@@ -77,7 +77,7 @@ def GD_inference(AEs, l_v_best, x_inp, clip=5, lr=0.01, n_iter=20,
 
         bs, n_ch, nx, ny = x_inp.shape
         with torch.enable_grad():
-            l_v_best = tensor(l_v_best.data.clone().to(u.dev()), requires_grad=True)
+            l_v_best = l_v_best.data.clone().detach().requires_grad_(True).to(u.dev())
             opti = optim.Adam([l_v_best], lr=lr)
             for i in range(n_iter):
                 ELBOs = []
@@ -87,14 +87,13 @@ def GD_inference(AEs, l_v_best, x_inp, clip=5, lr=0.01, n_iter=20,
                         l_v_best = l_v_best.detach()  # no gradients in last run
                     AEs[j].eval()
 
-                    rec = F.sigmoid(AEs[j].Decoder.forward(l_v_best[:, j]))
+                    rec = torch.sigmoid(AEs[j].Decoder.forward(l_v_best[:, j]))
 
                     ELBOs.append(loss_functions.ELBOs(rec,              # (bs, n_ch, nx, ny)
                                                       l_v_best[:, j],   # (bs, n_latent, 1, 1)
                                                       x_inp,            # (bs, n_ch, nx, ny)
                                                       beta=beta,
-                                                      dist_fct=dist_fct,
-                                                      auto_batch_size=None))
+                                                      dist_fct=dist_fct))
                     if i == n_iter - 1:
                         all_recs.append(rec.view(bs, 1, n_ch, nx, ny).detach())
 
@@ -112,8 +111,49 @@ def GD_inference(AEs, l_v_best, x_inp, clip=5, lr=0.01, n_iter=20,
 
         return ELBOs.detach(), l_v_best.detach(), all_recs
 
-    ELBOs, l_v_best, all_recs = u.auto_batch(500, gd_inference_b, [l_v_best, x_inp], AEs,
+    ELBOs, l_v_best, all_recs = u.auto_batch(1000, gd_inference_b, [l_v_best, x_inp], AEs,
                                              n_classes=n_classes, clip=clip, lr=lr,
                                              n_iter=n_iter, beta=beta, dist_fct=dist_fct)
 
     return ELBOs, l_v_best, all_recs
+
+
+
+# def GD_inference_new(AEs, l_v_best, x_inp, clip=5, lr=0.01, n_iter=20,
+    #              beta=1, dist_fct=loss_functions.squared_L2_loss):
+    # n_classes = len(AEs)
+    #
+    # # l_v_best are the latents
+    # # have shape (batch_size, n_classes == 10, n_latents == 8) + singleton dims
+    #
+    # # do gradient descent w.r.t. ELBO in latent space starting from l_v_best
+    # def gd_inference_b(l_v_best, x_inp, AEs, clip=5, lr=0.01, n_iter=20,
+    #                    beta=1, dist_fct=loss_functions.squared_L2_loss):
+    #
+    #     with torch.enable_grad():
+    #         l_v_best = l_v_best.data.clone().detach().requires_grad_(True).to(u.dev())
+    #         opti = optim.Adam([l_v_best], lr=lr)
+    #         for i in range(n_iter):
+    #             recs = torch.nn.parallel.parallel_apply(
+    #                 [AE.Decoder.forward for AE in AEs],
+    #                 [best_latent for best_latent in l_v_best.transpose(0, 1)])
+    #             recs = torch.nn.functional.sigmoid(torch.stack(recs, dim=1))
+    #             ELBOs = loss_functions.ELBOs(recs, l_v_best, x_inp[:, None], beta=beta,
+    #                                          dist_fct=dist_fct)[..., 0]
+    #
+    #             if i < n_iter - 1:
+    #                 loss = (torch.sum(ELBOs)) - 8./784./2  # historic reasons
+    #                 # backward
+    #                 opti.zero_grad()
+    #                 loss.backward()
+    #                 opti.step()
+    #                 l_v_best.data = u.clip_to_sphere(l_v_best.data, clip, channel_dim=2)
+    #             else:
+    #                 opti.zero_grad()
+    #
+    #     return ELBOs.detach(), l_v_best.detach(), recs.detach()
+    #
+    # ELBOs, l_v_best, all_recs = u.auto_batch(2000, gd_inference_b, [l_v_best, x_inp], AEs,
+    #                                          clip=clip, lr=lr,  n_iter=n_iter, beta=beta, dist_fct=dist_fct)
+    #
+    # return ELBOs, l_v_best, all_recs

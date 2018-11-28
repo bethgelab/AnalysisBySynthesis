@@ -36,18 +36,14 @@ from foolbox import attacks as fa
 from abs_models import utils as u
 from abs_models import models as mz
 from abs_models import attack_utils as au
-
-
 # -
 
-# + {"scrolled": true}
-# model = mz.get_VAE(n_iter=50)              # ABS do n_iter=1 for speedup (but ess accurate)
+model = mz.get_VAE(n_iter=10)              # ABS, do n_iter=50 for original model 
 # model = mz.get_VAE(binary=True)           # ABS with scaling and binaryzation
 # model = mz.get_binary_CNN()               # Binary CNN
-model = mz.get_CNN()                      # Vanilla CNN
+# model = mz.get_CNN()                      # Vanilla CNN
 # model = mz.get_NearestNeighbor()          # Nearest Neighbor, "nearest L2 dist to each class"=logits
 # model = mz.get_madry()                    # Robust network from Madry et al. in tf
-# -
 
 # code is agnostic of pytorch/ tensorflow model --> foolbox model
 if model.code_base == 'tensorflow':
@@ -62,19 +58,22 @@ else:
     print('not implemented')
 
 # test model 
-b, l = u.get_batch(bs=1000)  # returns random batch as np.array
+b, l = u.get_batch(bs=10000)  # returns random batch as np.array
 pred_label = np.argmax(fmodel.batch_predictions(b), axis=1)
 print('score', float(np.sum(pred_label == l)) / b.shape[0])
 
 # # Decision based attacks
 # Note that this is only demo code. All experiments were optimized to our compute architecture. 
 
+b, l = u.get_batch(bs=1)  # returns random batch
+
 # +
-att = fa.PointwiseAttack(fmodel)
-metric = foolbox.distances.L0
+import time
+start = time.time()
+att = fa.DeepFoolL2Attack(fmodel)
+metric = foolbox.distances.MSE
 criterion = foolbox.criteria.Misclassification()
 
-b, l = u.get_batch(bs=1)  # returns random batch
 plt.imshow(b[0, 0], cmap='gray')
 plt.title('orig')
 plt.axis('off')
@@ -89,7 +88,7 @@ if not model.has_grad:
 a = foolbox.adversarial.Adversarial(fmodel, criterion, b[0], l[0], distance=metric)
 att(a)   
 
-
+print('runtime', time.time() - start, 'seconds')
 print('pred', np.argmax(fmodel.predictions(a.image)))
 if a.image is not None:   # attack was successful
     plt.imshow(a.image[0], cmap='gray')
@@ -138,6 +137,7 @@ for i in range(10000):
 plt.imshow(u.t2n(a[0]), cmap='gray')
 plt.show()
 # -
+
 # # Latent Descent Attack
 
 # +

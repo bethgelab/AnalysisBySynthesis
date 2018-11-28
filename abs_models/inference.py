@@ -74,7 +74,6 @@ def GD_inference(AEs, l_v_best, x_inp, clip=5, lr=0.01, n_iter=20,
     def gd_inference_b(l_v_best, x_inp, AEs, n_classes=10, clip=5, lr=0.01, n_iter=20,
                        beta=1, dist_fct=loss_functions.squared_L2_loss):
 
-
         bs, n_ch, nx, ny = x_inp.shape
         with torch.enable_grad():
             l_v_best = l_v_best.data.clone().detach().requires_grad_(True).to(u.dev())
@@ -118,7 +117,7 @@ def GD_inference(AEs, l_v_best, x_inp, clip=5, lr=0.01, n_iter=20,
     return ELBOs, l_v_best, all_recs
 
 
-
+# pytorch 1.0:
 # def GD_inference_new(AEs, l_v_best, x_inp, clip=5, lr=0.01, n_iter=20,
     #              beta=1, dist_fct=loss_functions.squared_L2_loss):
     # n_classes = len(AEs)

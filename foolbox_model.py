@@ -8,7 +8,7 @@ def create():
     model = get_ABS()
     model.eval()
     fmodel = foolbox.models.PyTorchModel(
-        model, (0, 1), num_classes=10)
+        model, (0, 1))
     return fmodel
 
 
